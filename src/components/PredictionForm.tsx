@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  DndContext, DragEndEvent, PointerSensor, TouchSensor, closestCenter,
+  DndContext, DragEndEvent, PointerSensor, closestCenter,
   useSensor, useSensors,
 } from "@dnd-kit/core";
 import {
@@ -42,7 +42,7 @@ function SortableRow({
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-2 rounded-lg border bg-white px-2 py-1.5 ${
+      className={`flex items-center gap-1 rounded-lg border bg-white py-1 pl-2 pr-1 ${
         isDragging ? "z-10 border-emerald-400 shadow-lg" : "border-slate-200"
       }`}
     >
@@ -53,13 +53,36 @@ function SortableRow({
           const target = Number(e.target.value);
           if (target >= 1 && target <= teamCount) onMove(pos - 1, target - 1);
         }}
-        className="w-12 rounded-md border border-slate-300 px-1 py-1 text-center text-sm"
+        className="w-11 rounded-md border border-slate-300 px-1 py-1.5 text-center text-sm"
       />
-      <span className="flex-1 truncate font-medium">{team.name}</span>
+      <span className="min-w-0 flex-1 truncate font-medium">{team.name}</span>
+
+      {/* Pilarna gör listan användbar med tummen. Att dra ett lag från plats 20
+          till plats 1 på en telefon är inte roligt även när dragandet funkar. */}
+      <button
+        type="button"
+        onClick={() => onMove(pos - 1, pos - 2)}
+        disabled={pos === 1}
+        aria-label={`Flytta ${team.name} uppåt`}
+        className="flex h-11 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:opacity-25"
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        onClick={() => onMove(pos - 1, pos)}
+        disabled={pos === teamCount}
+        aria-label={`Flytta ${team.name} nedåt`}
+        className="flex h-11 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:opacity-25"
+      >
+        ▼
+      </button>
+
       <button
         type="button"
         {...attributes} {...listeners}
-        className="cursor-grab touch-none rounded-md px-2 py-1 text-slate-400 active:cursor-grabbing"
+        style={{ touchAction: "none" }}
+        className="flex h-11 w-11 cursor-grab touch-none items-center justify-center rounded-md text-slate-400 active:cursor-grabbing"
         aria-label={`Dra för att flytta ${team.name}`}
       >
         ⠿
@@ -83,9 +106,12 @@ export default function PredictionForm({
   const [submitted, setSubmitted] = useState(alreadySubmitted);
 
   const teamById = new Map(teams.map((t) => [t.id, t]));
+  // Enbart PointerSensor – den täcker mus, penna och touch. dnd-kits egen
+  // dokumentation avråder från att lägga TouchSensor bredvid den. Att ha båda
+  // visade sig inte vara buggen här, men en sensor är den uppsättning
+  // biblioteket rekommenderar, och draget är verifierat på riktig iOS-Safari.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
 
   const stepDone = [
@@ -217,7 +243,8 @@ export default function PredictionForm({
         {step === 1 && (
           <>
             <p className="mb-3 text-sm text-slate-600">
-              Rangordna alla {teams.length} lagen. Dra i handtaget eller skriv en placering i rutan.
+              Rangordna alla {teams.length} lagen. Använd pilarna, dra i handtaget
+              eller skriv en placering i rutan.
             </p>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={order} strategy={verticalListSortingStrategy}>
