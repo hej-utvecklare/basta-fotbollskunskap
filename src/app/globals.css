@@ -2,26 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-slate-50 text-slate-900 antialiased;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+/* Enkel typografi för reglersidan (renderad markdown) */
+.prose-custom h1 { @apply mb-4 text-2xl font-bold; }
+.prose-custom h2 { @apply mb-2 mt-6 text-xl font-semibold; }
+.prose-custom h3 { @apply mb-2 mt-4 text-lg font-semibold; }
+.prose-custom p { @apply mb-3 text-slate-700; }
+.prose-custom ul, .prose-custom ol { @apply mb-3 list-inside space-y-1 text-slate-700; }
+.prose-custom ul { @apply list-disc; }
+.prose-custom ol { @apply list-decimal; }
+.prose-custom blockquote { @apply mb-3 border-l-4 border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900; }
+.prose-custom blockquote p { @apply mb-0 text-amber-900; }
+.prose-custom code { @apply rounded bg-slate-100 px-1 py-0.5 text-sm; }
+.prose-custom pre { @apply mb-3 overflow-x-auto rounded-lg bg-slate-100 p-3 text-sm; }
+.prose-custom pre code { @apply bg-transparent p-0; }
+.prose-custom table { @apply mb-3 w-auto border-collapse text-sm; }
+.prose-custom th, .prose-custom td { @apply border border-slate-200 px-3 py-1 text-right; }
+.prose-custom th { @apply bg-slate-50 font-semibold; }
+.prose-custom strong { @apply font-semibold; }
