@@ -52,3 +52,11 @@ create table if not exists scores (
   updated_at timestamptz not null default now(),
   primary key (user_id, gameweek)
 );
+
+-- RLS på alla tabeller. Inga policies: appen kör service role server-side och går
+-- förbi RLS, medan anon-nyckeln blir helt utelåst (annars är public exponerad).
+alter table users enable row level security;
+alter table predictions enable row level security;
+alter table snapshots enable row level security;
+alter table settings enable row level security;
+alter table scores enable row level security;
