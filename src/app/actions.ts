@@ -6,6 +6,7 @@ import {
   setAdminCookie, setUserCookie,
 } from "@/lib/auth";
 import { deadlinePassed, getPrediction, getSettings, getSnapshot, updateSettings } from "@/lib/data";
+import { predictionProgress } from "@/lib/progress";
 import { refreshAll, recomputeScores } from "@/lib/refresh";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -69,41 +70,56 @@ type PredictionPayload = {
   topAssists: number[];
 };
 
-async function canEdit(userId: string): Promise<{ ok: boolean; message?: string }> {
+/** Gissningen går att ändra ända fram till deadline, även efter inskickning.
+ *  Det är bara deadline som låser – inte att man tryckt "skicka in". */
+async function canEdit(): Promise<{ ok: boolean; message?: string }> {
   const settings = await getSettings();
-  const admin = isAdmin();
-  if (deadlinePassed(settings) && !admin) {
+  if (deadlinePassed(settings) && !isAdmin()) {
     return { ok: false, message: "Deadline har passerat – gissningen är låst." };
-  }
-  const existing = await getPrediction(userId);
-  if (existing?.submitted_at && !admin) {
-    return { ok: false, message: "Din gissning är redan inskickad och låst." };
   }
   return { ok: true };
 }
 
-export async function saveDraft(payload: PredictionPayload): Promise<ActionResult> {
+export async function saveDraft(payload: Partial<PredictionPayload>): Promise<ActionResult> {
   const userId = currentUserId();
   if (!userId) return { ok: false, message: "Du är inte inloggad." };
-  const allowed = await canEdit(userId);
+  const allowed = await canEdit();
   if (!allowed.ok) return allowed;
 
-  const { error } = await supabaseAdmin().from("predictions").upsert({
-    user_id: userId,
-    table_order: payload.tableOrder,
-    first_sacked: payload.firstSacked,
-    top_scorers: payload.topScorers,
-    top_assists: payload.topAssists,
-    updated_at: new Date().toISOString(),
-  });
+  // Bara de delar som steget faktiskt äger skrivs, så att ett halvfyllt
+  // steg inte nollar det man redan sparat i ett annat.
+  const patch: Record<string, unknown> = { user_id: userId, updated_at: new Date().toISOString() };
+  if (payload.tableOrder !== undefined) patch.table_order = payload.tableOrder;
+  if (payload.firstSacked !== undefined) patch.first_sacked = payload.firstSacked;
+  if (payload.topScorers !== undefined) patch.top_scorers = payload.topScorers;
+  if (payload.topAssists !== undefined) patch.top_assists = payload.topAssists;
+
+  const { error } = await supabaseAdmin().from("predictions").upsert(patch);
   if (error) return { ok: false, message: "Kunde inte spara utkastet." };
+
+  // En ifylld gissning ska räknas även om deltagaren aldrig trycker "Skicka in" –
+  // annars ger ett komplett utkast noll poäng utan att någon märker det.
+  // Fram till deadline går den fortfarande att ändra.
+  try {
+    const saved = await getPrediction(userId);
+    if (saved && !saved.submitted_at) {
+      const snap = await getSnapshot();
+      const teamCount = snap?.snapshot.teams.length ?? 20;
+      if (predictionProgress(saved, teamCount).complete) {
+        await supabaseAdmin().from("predictions")
+          .update({ submitted_at: new Date().toISOString() })
+          .eq("user_id", userId);
+      }
+    }
+  } catch {}
+
   return { ok: true };
 }
 
 export async function submitPrediction(payload: PredictionPayload): Promise<ActionResult> {
   const userId = currentUserId();
   if (!userId) return { ok: false, message: "Du är inte inloggad." };
-  const allowed = await canEdit(userId);
+  const allowed = await canEdit();
   if (!allowed.ok) return allowed;
 
   const snap = await getSnapshot();
@@ -136,9 +152,10 @@ export async function submitPrediction(payload: PredictionPayload): Promise<Acti
   try {
     if (snap) await recomputeScores(snap.snapshot);
   } catch {}
+  revalidatePath("/");
   revalidatePath("/gissning");
   revalidatePath("/tabell");
-  return { ok: true, message: "Gissningen är inskickad och låst. Lycka till!" };
+  return { ok: true, message: "Gissningen är inskickad! Du kan ändra den fram till deadline." };
 }
 
 // ---------- Admin ----------
@@ -235,7 +252,7 @@ export async function adminUnlockPrediction(_prev: ActionResult | null, formData
     .from("predictions").update({ submitted_at: null }).eq("user_id", userId);
   if (error) return { ok: false, message: "Kunde inte låsa upp gissningen." };
   revalidatePath("/admin");
-  return { ok: true, message: "Gissningen upplåst – användaren kan redigera igen (kräver att admin också flyttar deadline, eller redigera som admin)." };
+  return { ok: true, message: "Gissningen upplåst – användaren kan redigera igen fram till deadline." };
 }
 
 export async function adminImpersonate(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {

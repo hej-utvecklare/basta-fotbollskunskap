@@ -14,7 +14,7 @@ Tabellgissningen står för ungefär en femtedel av poängen. Den räcker inte f
 
 Innan säsongens första match rangordnar du alla 20 lagen från plats 1 till plats 20. Du gissar också vilken tränare som får sparken först, vilka tre spelare som gör flest mål och vilka tre som gör flest assist.
 
-När gissningen är inskickad är den låst. Ingen ändring under säsongen.
+Du kan ändra din gissning hur mycket du vill fram till deadline — fredag 21 augusti kl 20:00, en timme före säsongens första match. Efter det är den låst för resten av säsongen.
 
 ### Så räknas poängen
 

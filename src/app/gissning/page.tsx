@@ -3,6 +3,8 @@ import { currentUser, isAdmin } from "@/lib/auth";
 import { deadlinePassed, getPrediction, getSettings, getSnapshot } from "@/lib/data";
 import { computeScore } from "@/lib/scoring";
 import { defaultTableOrder } from "@/lib/defaultOrder";
+import { managerOptions } from "@/lib/managers";
+import { STEPS } from "@/lib/progress";
 import PredictionForm from "@/components/PredictionForm";
 import { PickerPlayer } from "@/components/PlayerPicker";
 
@@ -12,7 +14,11 @@ function fmt(n: number): string {
   return n.toLocaleString("sv-SE", { maximumFractionDigits: 2 });
 }
 
-export default async function GissningPage() {
+export default async function GissningPage({
+  searchParams,
+}: {
+  searchParams: { steg?: string };
+}) {
   const user = await currentUser();
   if (!user) {
     return (
@@ -37,11 +43,11 @@ export default async function GissningPage() {
 
   const { teams, players } = snap.snapshot;
   const admin = isAdmin();
-  const locked = (deadlinePassed(settings) || !!prediction?.submitted_at) && !admin;
+  const locked = deadlinePassed(settings) && !admin;
 
-  // Läsvy efter deadline / inskickning: visa gissningen med poäng per lag
+  // Läsvy efter deadline: visa gissningen med poäng per lag
   if (locked) {
-    if (!prediction?.submitted_at && deadlinePassed(settings)) {
+    if (!prediction?.submitted_at) {
       return (
         <p className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-red-800">
           Deadline har passerat och du hann inte skicka in någon gissning. Hör av dig till
@@ -49,17 +55,6 @@ export default async function GissningPage() {
         </p>
       );
     }
-    if (!deadlinePassed(settings)) {
-      return (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-          <p className="font-semibold text-emerald-800">✓ Din gissning är inskickad och låst.</p>
-          <p className="mt-1 text-sm text-emerald-700">
-            När deadline passerat visas den här, med poäng per lag under säsongen.
-          </p>
-        </div>
-      );
-    }
-
     const fplPoints =
       snap.snapshot.fplStandings.find((e) => e.entry === user.fpl_entry_id)?.total ?? 0;
     const score = computeScore(prediction!, snap.snapshot, settings, fplPoints);
@@ -172,25 +167,36 @@ export default async function GissningPage() {
     return a.slice(0, 3);
   };
 
+  const deadlineLabel = settings.deadline
+    ? new Date(settings.deadline).toLocaleString("sv-SE", {
+        weekday: "long", day: "numeric", month: "long", hour: "2-digit",
+        minute: "2-digit", timeZone: "Europe/Stockholm",
+      })
+    : null;
+
+  const stepFromUrl = STEPS.find((s) => s.slug === searchParams.steg)?.n ?? 1;
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Din gissning</h1>
-      {settings.deadline && (
+      {deadlineLabel && (
         <p className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">
-          Deadline:{" "}
-          {new Date(settings.deadline).toLocaleString("sv-SE", {
-            dateStyle: "full", timeStyle: "short", timeZone: "Europe/Stockholm",
-          })}
+          Deadline: <span className="font-semibold">{deadlineLabel}</span> – fram till dess
+          kan du ändra fritt.
         </p>
       )}
       <PredictionForm
         teams={teams}
         players={pickerPlayers}
+        managers={managerOptions(teams)}
         initialOrder={validSavedOrder ? prediction!.table_order! : defaultTableOrder(teams)}
         initialSacked={prediction?.first_sacked ?? ""}
         initialScorers={pad3(prediction?.top_scorers)}
         initialAssists={pad3(prediction?.top_assists)}
-        adminMode={admin && (deadlinePassed(settings) || !!prediction?.submitted_at)}
+        initialStep={stepFromUrl}
+        deadlineLabel={deadlineLabel}
+        alreadySubmitted={!!prediction?.submitted_at}
+        adminMode={admin && deadlinePassed(settings)}
       />
     </div>
   );

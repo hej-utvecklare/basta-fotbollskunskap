@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 import { getSnapshot } from "@/lib/data";
 import { currentUser } from "@/lib/auth";
+import ProgressBanner from "@/components/ProgressBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="sv">
       <body className={inter.className}>
         <Nav />
+        <ProgressBanner />
         <main className="mx-auto max-w-3xl px-3 py-6">{children}</main>
         <Footer />
       </body>
