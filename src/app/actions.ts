@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  clearUserCookie, currentUser, currentUserId, hashPin, isAdmin,
-  setAdminCookie, setUserCookie,
+  clearImpersonateCookie, currentUser, currentUserId, isAdmin,
+  setAdminCookie, setImpersonateCookie,
 } from "@/lib/auth";
 import { deadlinePassed, getPrediction, getSettings, getSnapshot, updateSettings } from "@/lib/data";
 import { predictionProgress } from "@/lib/progress";
@@ -12,45 +12,17 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export type ActionResult = { ok: boolean; message?: string };
 
-// ---------- Inloggning ----------
+// ---------- Session ----------
 
-export async function login(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const name = String(formData.get("name") ?? "").trim();
-  const pin = String(formData.get("pin") ?? "").trim();
-  if (!name) return { ok: false, message: "Skriv ditt namn." };
-  if (pin && !/^\d{4}$/.test(pin)) return { ok: false, message: "PIN måste vara exakt fyra siffror." };
-
-  const db = supabaseAdmin();
-  // Escapa ilike-wildcards så "Kalle%" inte matchar andra namn
-  const { data: existing } = await db
-    .from("users").select("id, pin_hash")
-    .ilike("name", name.replace(/[%_]/g, "\\$&")).maybeSingle();
-
-  if (existing) {
-    if (existing.pin_hash && existing.pin_hash !== hashPin(pin, existing.id)) {
-      return { ok: false, message: "Fel PIN. Den här användaren har ett PIN – ange det för att logga in." };
-    }
-    setUserCookie(existing.id);
-  } else {
-    const { data: created, error } = await db
-      .from("users").insert({ name }).select("id").single();
-    if (error || !created) return { ok: false, message: "Kunde inte skapa användaren. Försök igen." };
-    if (pin) {
-      await db.from("users").update({ pin_hash: hashPin(pin, created.id) }).eq("id", created.id);
-    }
-    setUserCookie(created.id);
-  }
-  revalidatePath("/");
-  return { ok: true };
-}
-
-export async function logout(): Promise<void> {
-  clearUserCookie();
+/** Admin lämnar "agera som deltagare"-läget. Vanlig utloggning sker i
+ *  webbläsaren via Supabase (se SignOut-komponenten). */
+export async function stopImpersonating(): Promise<void> {
+  clearImpersonateCookie();
   revalidatePath("/");
 }
 
 export async function linkFplTeam(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const userId = currentUserId();
+  const userId = await currentUserId();
   if (!userId) return { ok: false, message: "Du är inte inloggad." };
   const entry = Number(formData.get("entry"));
   if (!entry) return { ok: false, message: "Välj ett lag i listan." };
@@ -81,7 +53,7 @@ async function canEdit(): Promise<{ ok: boolean; message?: string }> {
 }
 
 export async function saveDraft(payload: Partial<PredictionPayload>): Promise<ActionResult> {
-  const userId = currentUserId();
+  const userId = await currentUserId();
   if (!userId) return { ok: false, message: "Du är inte inloggad." };
   const allowed = await canEdit();
   if (!allowed.ok) return allowed;
@@ -117,7 +89,7 @@ export async function saveDraft(payload: Partial<PredictionPayload>): Promise<Ac
 }
 
 export async function submitPrediction(payload: PredictionPayload): Promise<ActionResult> {
-  const userId = currentUserId();
+  const userId = await currentUserId();
   if (!userId) return { ok: false, message: "Du är inte inloggad." };
   const allowed = await canEdit();
   if (!allowed.ok) return allowed;
@@ -259,9 +231,9 @@ export async function adminImpersonate(_prev: ActionResult | null, formData: For
   const denied = requireAdmin();
   if (denied) return denied;
   const userId = String(formData.get("user_id") ?? "");
-  setUserCookie(userId);
+  setImpersonateCookie(userId);
   revalidatePath("/");
-  return { ok: true, message: "Du är nu inloggad som användaren. Gå till Gissningen för att fylla i åt hen." };
+  return { ok: true, message: "Du agerar nu som användaren i en timme. Gå till Gissningen för att fylla i åt hen." };
 }
 
 export async function adminRefresh(): Promise<ActionResult> {

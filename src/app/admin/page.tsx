@@ -44,7 +44,7 @@ export default async function AdminPage() {
           id: u.id,
           name: u.name,
           fplEntryId: u.fpl_entry_id,
-          hasPin: !!u.pin_hash,
+          email: u.email,
           submitted: !!p?.submitted_at,
           hasDraft: !!p && !p.submitted_at,
           sackedGuess: p?.first_sacked ?? null,

@@ -2,10 +2,10 @@ import Link from "next/link";
 import { currentUser } from "@/lib/auth";
 import { deadlinePassed, getPrediction, getSettings, getSnapshot } from "@/lib/data";
 import { STEPS, predictionProgress } from "@/lib/progress";
-import LoginForm from "@/components/LoginForm";
+import GoogleSignIn from "@/components/GoogleSignIn";
+import SignOut from "@/components/SignOut";
 import CopyCode from "@/components/CopyCode";
 import LinkTeam from "@/components/LinkTeam";
-import { logout } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -48,11 +48,11 @@ export default async function HomePage() {
           <section className="rounded-xl border-2 border-emerald-500 bg-white p-5">
             <h2 className="text-lg font-semibold">Kom igång</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Skriv ditt namn så guidar vi dig genom de fyra stegen. Du kan spara och
-              komma tillbaka när du vill.
+              Logga in med Google så guidar vi dig genom de fyra stegen. Du kan spara
+              och komma tillbaka när du vill.
             </p>
             <div className="mt-4">
-              <LoginForm />
+              <GoogleSignIn />
             </div>
           </section>
 
@@ -191,11 +191,7 @@ export default async function HomePage() {
               <p className="text-sm">
                 Inloggad som <span className="font-semibold">{user.name}</span>
               </p>
-              <form action={logout}>
-                <button className="text-sm text-slate-500 underline hover:text-slate-700">
-                  Logga ut
-                </button>
-              </form>
+              <SignOut />
             </div>
           </section>
         </>

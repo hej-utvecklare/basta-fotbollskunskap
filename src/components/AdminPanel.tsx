@@ -57,7 +57,7 @@ function UserCard({ user: u, fplEntries }: { user: AdminUser; fplEntries: FplEnt
       <p className="font-medium">
         {u.name}{" "}
         <span className="text-xs font-normal text-slate-500">
-          {u.hasPin ? "· PIN satt" : "· inget PIN"}
+          {u.email ? `· ${u.email}` : "· ingen e-post"}
           {u.submitted ? " · gissning inskickad" : u.hasDraft ? " · utkast" : " · ingen gissning"}
         </span>
       </p>
@@ -106,7 +106,7 @@ type AdminUser = {
   id: string;
   name: string;
   fplEntryId: number | null;
-  hasPin: boolean;
+  email: string | null;
   submitted: boolean;
   hasDraft: boolean;
   sackedGuess: string | null;

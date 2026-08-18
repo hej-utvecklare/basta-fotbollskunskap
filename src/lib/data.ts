@@ -53,13 +53,13 @@ export function deadlinePassed(settings: Settings): boolean {
 export type DbUser = {
   id: string;
   name: string;
-  pin_hash: string | null;
+  email: string | null;
   fpl_entry_id: number | null;
 };
 
 export async function listUsers(): Promise<DbUser[]> {
   const { data } = await supabaseAdmin()
-    .from("users").select("id, name, pin_hash, fpl_entry_id").order("name");
+    .from("users").select("id, name, email, fpl_entry_id").order("name");
   return data ?? [];
 }
 
