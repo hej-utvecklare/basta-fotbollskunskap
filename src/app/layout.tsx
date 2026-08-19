@@ -49,6 +49,7 @@ async function Nav() {
   const links = [
     { href: "/", label: "Hem" },
     { href: "/gissning", label: "Gissningen" },
+    { href: "/gissningar", label: "Allas gissningar" },
     { href: "/tabell", label: "Ligatabellen" },
     { href: "/pl", label: "PL-tabellen" },
     { href: "/regler", label: "Reglerna" },

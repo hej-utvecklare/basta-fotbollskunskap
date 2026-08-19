@@ -48,3 +48,14 @@ export function predictionProgress(
     nextStep: firstMissing === -1 ? flags.length : firstMissing + 1,
   };
 }
+
+/** Vem som får se en gissning. Andras öppnas först vid deadline – annars går
+ *  det att kopiera varandra. Admin ser alltid allt, och den egna gissningen
+ *  är förstås alltid synlig för en själv. */
+export function canViewPrediction(opts: {
+  deadlinePassed: boolean;
+  isAdmin: boolean;
+  isSelf: boolean;
+}): boolean {
+  return opts.deadlinePassed || opts.isAdmin || opts.isSelf;
+}

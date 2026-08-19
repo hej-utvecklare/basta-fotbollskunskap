@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 export type LeaderboardRow = {
@@ -87,6 +88,12 @@ export default function Leaderboard({ rows }: { rows: LeaderboardRow[] }) {
                     </ul>
                   </div>
                 )}
+                <Link
+                  href={`/gissningar/${row.userId}`}
+                  className="inline-block font-medium text-emerald-700 underline"
+                >
+                  Se hela gissningen
+                </Link>
               </div>
             )}
           </div>

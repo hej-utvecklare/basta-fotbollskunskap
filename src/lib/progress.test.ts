@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { predictionProgress } from "./progress";
+import { canViewPrediction, predictionProgress } from "./progress";
 import { Prediction } from "./types";
 
 const full = Array.from({ length: 20 }, (_, i) => i + 1);
@@ -55,5 +55,26 @@ describe("predictionProgress", () => {
     );
     expect(p.complete).toBe(true);
     expect(p.doneCount).toBe(4);
+  });
+});
+
+describe("canViewPrediction", () => {
+  const v = (o: Partial<Parameters<typeof canViewPrediction>[0]>) =>
+    canViewPrediction({ deadlinePassed: false, isAdmin: false, isSelf: false, ...o });
+
+  it("döljer andras gissningar före deadline", () => {
+    expect(v({})).toBe(false);
+  });
+
+  it("visar alltid den egna", () => {
+    expect(v({ isSelf: true })).toBe(true);
+  });
+
+  it("öppnar allas när deadline passerat", () => {
+    expect(v({ deadlinePassed: true })).toBe(true);
+  });
+
+  it("låter admin se allt även före deadline", () => {
+    expect(v({ isAdmin: true })).toBe(true);
   });
 });

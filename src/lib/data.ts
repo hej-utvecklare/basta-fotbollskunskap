@@ -92,3 +92,13 @@ export async function getLatestScoredGameweeks(): Promise<number[]> {
     .from("scores").select("gameweek").order("gameweek", { ascending: false });
   return [...new Set((data ?? []).map((r) => r.gameweek))];
 }
+
+export type PredictionSummary = Prediction & { user_id: string };
+
+/** Alla inskickade gissningar. Används av vyn där man tittar på varandras. */
+export async function listPredictions(): Promise<PredictionSummary[]> {
+  const { data } = await supabaseAdmin()
+    .from("predictions")
+    .select("user_id, table_order, first_sacked, top_scorers, top_assists, submitted_at");
+  return (data as PredictionSummary[]) ?? [];
+}
